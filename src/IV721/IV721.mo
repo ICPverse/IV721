@@ -11,7 +11,7 @@ import T "iv721_types";
 import Debug "mo:base/Debug";
 import Time "mo:base/Time";
 
-actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool, _equips: Bool) {
+actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool, _equips: Bool, _creator: Principal) {
     private stable var tokenPk : Nat = 0;
 
     private stable var tokenURIEntries : [(T.TokenId, Text)] = [];
@@ -24,6 +24,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private stable var propertyFrequencyEntries : [(Text, Nat)] = [];
     private stable var equippedEntries: [(T.TokenId, Bool)] = [];
     private stable var evolvedEntries : [(T.TokenId, Bool)] = [];
+    private stable var auctionEntries : [(T.TokenId, Bool)] = [];
 
     private let tokenURIs : HashMap.HashMap<T.TokenId, Text> = HashMap.fromIter<T.TokenId, Text>(tokenURIEntries.vals(), 10, Nat.equal, Hash.hash);
     private let tokenDynamicURIs : HashMap.HashMap<T.TokenId, Text> = HashMap.fromIter<T.TokenId, Text>(tokenDynamicURIEntries.vals(), 10, Nat.equal, Hash.hash);
@@ -35,6 +36,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private let propertyFrequencies : HashMap.HashMap<Text, Nat> = HashMap.fromIter<Text, Nat>(propertyFrequencyEntries.vals(), 10, Text.equal, Text.hash);
     private let equipped : HashMap.HashMap<T.TokenId, Bool> = HashMap.fromIter<T.TokenId, Bool>(equippedEntries.vals(), 10, Nat.equal, Hash.hash);
     private let evolved : HashMap.HashMap<T.TokenId, Bool> = HashMap.fromIter<T.TokenId, Bool>(evolvedEntries.vals(), 10, Nat.equal, Hash.hash);
+    private let auctioned : HashMap.HashMap<T.TokenId, Bool> = HashMap.fromIter<T.TokenId, Bool>(auctionEntries.vals(), 10, Nat.equal, Hash.hash);
 
 
 
@@ -209,6 +211,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     };
 
     private func _transfer(from : Principal, to : Principal, tokenId : Nat) : () {
+        assert not _locked(tokenId);
         assert _exists(tokenId);
         let ownerOpt = _ownerOf(tokenId);
         var owner = Principal.fromText("2vxsx-fae");
@@ -260,6 +263,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     };
 
     private func _burn(tokenId : Nat) : () {
+        assert not _locked(tokenId);
         assert _exists(tokenId) == true;
         let ownerOpt = _ownerOf(tokenId);
         var owner = Principal.fromText("2vxsx-fae");
@@ -277,6 +281,38 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         ignore owners.remove(tokenId);
     };
 
+    private func _locked(tokenId : Nat): Bool{
+        let eqStatus = equipped.get(tokenId);
+        switch eqStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+            
+        };
+        let evStatus = evolved.get(tokenId);
+        switch evStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+        };
+        let aucStatus = auctioned.get(tokenId);
+        switch aucStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+        };
+        return false;
+    };
+
     system func preupgrade() {
         tokenURIEntries := Iter.toArray(tokenURIs.entries());
         tokenDynamicURIEntries := Iter.toArray(tokenDynamicURIs.entries());
@@ -288,6 +324,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         operatorApprovalsEntries := Iter.toArray(operatorApprovals.entries());
         evolvedEntries := Iter.toArray(evolved.entries());
         equippedEntries := Iter.toArray(equipped.entries());
+        auctionEntries := Iter.toArray(auctioned.entries());
     };
 
     system func postupgrade() {
@@ -301,6 +338,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         operatorApprovalsEntries := [];
         evolvedEntries := [];
         equippedEntries := [];
+        auctionEntries := [];
     };
 
 };
