@@ -211,8 +211,8 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     };
 
     private func _transfer(from : Principal, to : Principal, tokenId : Nat) : () {
-        assert not _locked(tokenId);
         assert _exists(tokenId);
+        assert not _locked(tokenId);
         let ownerOpt = _ownerOf(tokenId);
         var owner = Principal.fromText("2vxsx-fae");
         switch ownerOpt{
@@ -231,6 +231,21 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         _incrementBalance(to);
         owners.put(tokenId, to);
     };
+
+    private func _auction(tokenId: Nat) : (){
+        
+        assert _exists(tokenId);
+        assert not _locked(tokenId);
+        let _res = auctioned.replace(tokenId, true);
+    };
+
+    private func _evolve(tokenId: Nat) : (){
+        
+        assert _exists(tokenId);
+        assert not _locked(tokenId);
+        let _res = evolved.replace(tokenId, true);
+    };
+
 
     private func _incrementBalance(address : Principal) {
         switch (balances.get(address)) {
