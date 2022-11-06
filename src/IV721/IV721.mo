@@ -246,6 +246,27 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         let _res = evolved.replace(tokenId, true);
     };
 
+    private func _devolve(tokenId: Nat) : (){
+        
+        assert _exists(tokenId);
+        assert not _lockedExceptEvolve(tokenId);
+        let _res = evolved.replace(tokenId, false);
+    };
+
+    private func _equip(tokenId: Nat) : (){
+        
+        assert _exists(tokenId);
+        assert not _locked(tokenId);
+        let _res = equipped.replace(tokenId, true);
+    };
+
+    private func _dequip(tokenId: Nat) : (){
+        
+        assert _exists(tokenId);
+        assert not _lockedExceptEquip(tokenId);
+        let _res = equipped.replace(tokenId, false);
+    };
+
 
     private func _incrementBalance(address : Principal) {
         switch (balances.get(address)) {
@@ -307,6 +328,63 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
             };
             
         };
+        let evStatus = evolved.get(tokenId);
+        switch evStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+        };
+        let aucStatus = auctioned.get(tokenId);
+        switch aucStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+        };
+        return false;
+    };
+
+    private func _lockedExceptEvolve(tokenId : Nat): Bool{
+        let eqStatus = equipped.get(tokenId);
+        switch eqStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+            
+        };
+        let evStatus = evolved.get(tokenId);
+        switch evStatus{
+            case null{};
+            case (?bool) {};
+        };
+        let aucStatus = auctioned.get(tokenId);
+        switch aucStatus{
+            case null{};
+            case (?bool) {
+                if (bool){
+                    return true;
+                };
+            };
+        };
+        return false;
+    };
+
+    private func _lockedExceptEquip(tokenId : Nat): Bool{
+        let eqStatus = equipped.get(tokenId);
+        switch eqStatus{
+            case null{};
+            case (?bool) {};
+        };
+            
+        
         let evStatus = evolved.get(tokenId);
         switch evStatus{
             case null{};
