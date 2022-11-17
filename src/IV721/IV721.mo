@@ -17,6 +17,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private stable var tokenURIEntries : [(T.TokenId, Text)] = [];
     private stable var tokenDynamicURIEntries : [(T.TokenId, Text)] = [];
     private stable var ownersEntries : [(T.TokenId, Principal)] = [];
+    private stable var secondaryOwnerEntries : [(T.TokenId, [Principal])] = [];
     private stable var balancesEntries : [(Principal, Nat)] = [];
     private stable var tokenApprovalsEntries : [(T.TokenId, Principal)] = [];
     private stable var operatorApprovalsEntries : [(Principal, [Principal])] = [];
@@ -29,6 +30,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private let tokenURIs : HashMap.HashMap<T.TokenId, Text> = HashMap.fromIter<T.TokenId, Text>(tokenURIEntries.vals(), 10, Nat.equal, Hash.hash);
     private let tokenDynamicURIs : HashMap.HashMap<T.TokenId, Text> = HashMap.fromIter<T.TokenId, Text>(tokenDynamicURIEntries.vals(), 10, Nat.equal, Hash.hash);
     private let owners : HashMap.HashMap<T.TokenId, Principal> = HashMap.fromIter<T.TokenId, Principal>(ownersEntries.vals(), 10, Nat.equal, Hash.hash);
+    private let secondaryOwners : HashMap.HashMap<T.TokenId, [Principal]> = HashMap.fromIter<T.TokenId, [Principal]>(secondaryOwnerEntries.vals(), 10, Nat.equal, Hash.hash);
     private let balances : HashMap.HashMap<Principal, Nat> = HashMap.fromIter<Principal, Nat>(balancesEntries.vals(), 10, Principal.equal, Principal.hash);
     private let tokenApprovals : HashMap.HashMap<T.TokenId, Principal> = HashMap.fromIter<T.TokenId, Principal>(tokenApprovalsEntries.vals(), 10, Nat.equal, Hash.hash);
     private let operatorApprovals : HashMap.HashMap<Principal, [Principal]> = HashMap.fromIter<Principal, [Principal]>(operatorApprovalsEntries.vals(), 10, Principal.equal, Principal.hash);
@@ -230,6 +232,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         _decrementBalance(from);
         _incrementBalance(to);
         owners.put(tokenId, to);
+        let _res = secondaryOwners.remove(tokenId);
     };
 
     private func _auction(tokenId: Nat) : (){
@@ -242,7 +245,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private func _evolve(tokenId: Nat) : (){
         
         assert _exists(tokenId);
-        assert not _locked(tokenId);
+        assert not _lockedExceptEvolve(tokenId);
         let _res = evolved.replace(tokenId, true);
     };
 
@@ -256,7 +259,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
     private func _equip(tokenId: Nat) : (){
         
         assert _exists(tokenId);
-        assert not _locked(tokenId);
+        assert not _lockedExceptEquip(tokenId);
         let _res = equipped.replace(tokenId, true);
     };
 
@@ -288,6 +291,15 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
                 balances.put(address, 0);
             }
         }
+    };
+
+    private func _shareOwnership(tokenId: Nat, beneficiary: Principal): () {
+        assert _exists(tokenId);
+        let ownerListOption = secondaryOwners.get(tokenId);
+        var ownerListDefault: [Principal] = [];
+        var ownerList = Option.get(ownerListOption, ownerListDefault);
+        let _res = secondaryOwners.replace(tokenId, Array.append(ownerList, Array.make(beneficiary)));
+
     };
 
     private func _mint(to : Principal, tokenId : Nat, uri : Text) : () {
@@ -410,6 +422,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         tokenURIEntries := Iter.toArray(tokenURIs.entries());
         tokenDynamicURIEntries := Iter.toArray(tokenDynamicURIs.entries());
         ownersEntries := Iter.toArray(owners.entries());
+        secondaryOwnerEntries := Iter.toArray(secondaryOwners.entries());
         balancesEntries := Iter.toArray(balances.entries());
         propertiesEntries := Iter.toArray(properties.entries());
         propertyFrequencyEntries := Iter.toArray(propertyFrequencies.entries());
@@ -424,6 +437,7 @@ actor class DRC721(_name : Text, _symbol : Text, _tags: [Text],  _dynamic : Bool
         tokenURIEntries := [];
         tokenDynamicURIEntries := [];
         ownersEntries := [];
+        secondaryOwnerEntries := [];
         balancesEntries := [];
         propertiesEntries := [];
         propertyFrequencyEntries := [];
